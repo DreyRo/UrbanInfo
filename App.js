@@ -1,9 +1,9 @@
 // Importaciones principales de React y librerías necesarias
 import { NavigationContainer } from '@react-navigation/native'; // Manejo de la navegación
 import { createStackNavigator } from '@react-navigation/stack'; // Navegación tipo "stack"
-import { onAuthStateChanged } from 'firebase/auth'; // Detecta si el usuario está autenticado o no
-import React, { useContext, useEffect, useState } from 'react';
-import { auth } from './firebaseConfig'; // Configuración de Firebase
+
+// Importar el AuthProvider y el contexto desde el archivo centralizado
+import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Importar pantallas del proyecto
 import HomeScreen from './screens/HomeScreen';
@@ -11,31 +11,6 @@ import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import RoutineDetailScreen from './screens/RoutineDetailScreen';
 import RoutinesScreen from './screens/RoutinesScreen';
-
-// Crear un Contexto para la autenticación
-export const AuthContext = React.createContext();
-
-// Proveedor de Autenticación que envuelve la app
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null); // Estado del usuario autenticado
-  const [loading, setLoading] = useState(true); // Estado para saber si Firebase aún está verificando
-
-  // Efecto que escucha cambios en el estado de autenticación
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser); // Guardamos el usuario actual
-      setLoading(false);    // Terminamos de cargar
-    });
-    return unsubscribe; // Cancelamos la suscripción cuando el componente se desmonta
-  }, []);
-
-  return (
-    // Proveer el contexto de autenticación a toda la app
-    <AuthContext.Provider value={{ user, loading }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
 
 // Crear el stack de autenticación (pantallas de login/registro)
 const Stack = createStackNavigator();
@@ -71,7 +46,7 @@ const App = () => {
 
 // Verifica si el usuario está autenticado o no
 const AuthChecker = () => {
-  const { user, loading } = useContext(AuthContext); // Traemos datos del contexto
+  const { user, loading } = useAuth(); // Usamos el hook del contexto centralizado
 
   if (loading) {
     return null; // Mientras carga Firebase, no muestra nada (se puede poner un spinner aquí)

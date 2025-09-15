@@ -10,7 +10,7 @@ const RoutineDetailScreen = ({ route }) => {
   const { routine } = route.params;
 
   // Usuario actual desde el contexto de autenticación
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   // Estados locales
   const [exercises, setExercises] = useState([]);            // Lista de ejercicios de la rutina
@@ -18,10 +18,12 @@ const RoutineDetailScreen = ({ route }) => {
   const [loading, setLoading] = useState(true);              // Estado de carga
 
   // Se ejecuta al montar el componente
-  useEffect(() => {
-    loadExercises();       // Carga los ejercicios de la rutina
-    loadUserProgress();    // Carga el progreso del usuario desde Firestore
-  }, []);
+ useEffect(() => {
+  loadExercises();
+  if (!authLoading && user && user.uid) {
+    loadUserProgress();
+  }
+}, [user, authLoading]);
 
   // Función para cargar ejercicios
   const loadExercises = async () => {
@@ -67,6 +69,11 @@ const RoutineDetailScreen = ({ route }) => {
   // Función para cargar el progreso del usuario desde Firestore
   const loadUserProgress = async () => {
     try {
+      console.log('Usuario en loadUserProgress:', user);
+      if (!user || !user.uid) {
+        console.warn('Usuario no autenticado, no se puede cargar progreso');
+        return;
+      }
       // Consulta a la colección "progress" filtrando por usuario y rutina
       const progressQuery = query(
         collection(db, 'progress'),
@@ -86,6 +93,12 @@ const RoutineDetailScreen = ({ route }) => {
   // Marcar un ejercicio como completado
   const markExerciseCompleted = async (exerciseId) => {
     try {
+      
+      if (!user || !user.uid) {
+        Alert.alert('Error', 'Usuario no autenticado');
+        return;
+      }
+
       // Si ya está completado, mostramos aviso
       if (completedExercises.includes(exerciseId)) {
         Alert.alert('Info', 'Este ejercicio ya está marcado como completado');
@@ -107,7 +120,7 @@ const RoutineDetailScreen = ({ route }) => {
       Alert.alert('Error', 'No se pudo guardar el progreso');
       console.error('Error saving progress:', error);
     }
-  };
+  }
 
   // Renderiza cada tarjeta de ejercicio
   const renderExerciseItem = ({ item }) => {
@@ -145,13 +158,13 @@ const RoutineDetailScreen = ({ route }) => {
   };
 
   // Pantalla de carga
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Cargando ejercicios...</Text>
-      </View>
-    );
-  }
+  if (loading || authLoading) {
+  return (
+    <View style={styles.loadingContainer}>
+      <Text style={styles.loadingText}>Cargando ejercicios...</Text>
+    </View>
+  );
+}
 
   // Calculamos el progreso de la rutina
   const completedCount = completedExercises.length;
